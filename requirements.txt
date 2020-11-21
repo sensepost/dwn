@@ -1,0 +1,5 @@
+loguru==0.4.1
+click==7.1.1
+docker==4.3.1
+pyyaml
+icecream==2.0.0
