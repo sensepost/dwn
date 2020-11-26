@@ -69,14 +69,17 @@ def run(name, extra_args):
     logger.info(f'found plan for {name}')
     plan.add_commands(extra_args) if extra_args else None
 
-    for v, o in plan.volumes.items():
-        logger.info(f'host {v} is mounted to container {o["bind"]}')
-
     try:
         client = docker.from_env()
     except DockerException as e:
         logger.error(f'docker client error: {e}')
         return
+
+    for v, o in plan.volumes.items():
+        logger.info(f'host path {v} is mounted in container at {o["bind"]}')
+
+    for m in plan.exposed_ports:
+        logger.info(f'host port {m[1]} is mapped to container port {m[0]}')
 
     # update the container name to use the object prefix
     opts = plan.run_options()
@@ -99,6 +102,8 @@ def run(name, extra_args):
                                       stderr=True, stdout=True, remove=True,
                                       network=config.net_name(), ports={outside: outside},
                                       name=f'{opts["name"]}_net_{outside}_{inside}')
+
+            logger.info(f'started {len(plan.exposed_ports)} network containers')
     except ContainerError as e:
         logger.error(f'a container error occurred')
         click.echo(e)
@@ -181,10 +186,7 @@ def stop(name):
         return
 
     for container in client.containers.list():
-        if not container.name.startswith(config.object_prefix()):
-            continue
-
-        if plan.name not in container.name:
+        if not container.name.startswith(config.object_name(plan.name)):
             continue
 
         logger.info(f'stopping container {container.name}')
