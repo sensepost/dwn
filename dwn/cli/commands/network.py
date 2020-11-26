@@ -23,6 +23,8 @@ def build_container():
         Builds the network container
     """
 
+    logger.info('building network container')
+
     try:
         client = docker.from_env()
     except DockerException as e:
@@ -38,4 +40,6 @@ def build_container():
     image, logs = client.images.build(path=str(d), pull=True, tag=config.net_container_name())
 
     for log in logs:
-        logger.info(log)
+        logger.debug(log)
+
+    logger.info(f'network container {config.net_container_name()} built')

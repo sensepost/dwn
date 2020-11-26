@@ -1,7 +1,6 @@
 import click
 import docker
 from docker.errors import DockerException, ImageNotFound, ContainerError, NotFound
-from icecream import ic
 from loguru import logger
 
 from dwn.config import config
@@ -98,24 +97,41 @@ def run(name, extra_args):
                                           'LOCAL_PORT': outside,
                                       },
                                       stderr=True, stdout=True, remove=True,
-                                      network=config.net_name(), ports={inside: outside},
+                                      network=config.net_name(), ports={outside: outside},
                                       name=f'{opts["name"]}_net_{outside}_{inside}')
     except ContainerError as e:
         logger.error(f'a container error occurred')
         click.echo(e)
         return
     except ImageNotFound as e:
-        logger.error(f'image {plan.image} not found. '
-                     f'pulling it also failed: {e}')
+        logger.error(f'image {plan.image} not found. pulling it also failed: {e}')
         return
+    finally:
+        # cleanup
+        pass
 
     if plan.detach:
         logger.info(f'container {service.short_id} started, detaching')
         return
 
     logger.info('streaming container logs')
-    for log in service.logs(stream=True):
+    for log in service.attach(stdout=True, stderr=True, stream=True, logs=True):
         click.echo(log.rstrip())
+
+    # if log streaming is done, we're assuming the container exited too.
+    # so, cleanup any _net containers.
+    for container in client.containers.list():
+        if not container.name.startswith(config.object_prefix()):
+            continue
+
+        if '_net' not in container.name:
+            continue
+
+        if plan.name not in container.name:
+            continue
+
+        logger.debug(f'stopping container {container.name}')
+        container.stop()
 
 
 @click.command()
@@ -149,4 +165,27 @@ def stop(name):
     """
         Stop a plan
     """
-    pass
+
+    if not click.confirm(f'are you sure you want to stop containers for plan {name}?'):
+        return
+
+    try:
+        client = docker.from_env()
+    except DockerException as e:
+        logger.error(f'failed to connect to docker: {e}')
+        return
+
+    loader = Loader()
+    if not (plan := loader.get_plan(name)):
+        logger.error(f'unable to find plan {name}')
+        return
+
+    for container in client.containers.list():
+        if not container.name.startswith(config.object_prefix()):
+            continue
+
+        if plan.name not in container.name:
+            continue
+
+        logger.info(f'stopping container {container.name}')
+        container.stop()

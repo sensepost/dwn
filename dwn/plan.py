@@ -144,6 +144,7 @@ class Plan:
             inside, outside = p
             if outside in h:
                 logger.warning(f'plan {self.name} is trying to expose host port {outside} more than once')
+                self.valid = False
             h.append(outside)
 
     def add_commands(self, c: Union[str, list]):

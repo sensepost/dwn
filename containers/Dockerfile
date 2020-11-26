@@ -8,7 +8,8 @@ RUN apk add --update --no-cache \
 		socat \
 	&& rm -rf /var/cache/apk/
 
-CMD socat tcp-listen:$LOCAL_PORT,reuseaddr,fork tcp:$REMOTE_HOST:$REMOTE_PORT & pid=$! && \
+CMD socat -d -d tcp-listen:$LOCAL_PORT,reuseaddr,fork tcp:$REMOTE_HOST:$REMOTE_PORT & pid=$! && \
     trap "kill $pid" SIGINT && \
+    trap "kill $pid" SIGTERM && \
 	echo "forwarding $LOCAL_PORT to $REMOTE_HOST:$REMOTE_PORT ($pid)" && \
 	wait $pid
