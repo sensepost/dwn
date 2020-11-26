@@ -4,7 +4,7 @@ from typing import Union, Set, List, Dict, Any
 import yaml
 from loguru import logger
 
-from .constants import PLAN_DIRECTORY
+from .config import PLAN_DIRECTORY
 
 
 class Plan:
@@ -17,6 +17,9 @@ class Plan:
     valid: bool
     name: str
     volumes: Dict[Any, Any]
+    ports: Union[Dict[int, int]]
+    exposed_ports: List[Any]
+    environment: List[str]
     detach: bool
     image: str
     version: str
@@ -28,6 +31,9 @@ class Plan:
         self.image = ''
         self.command = ''
         self.volumes = {}
+        self.ports = {}
+        self.exposed_ports = []
+        self.environment = []
         self.detach = False
         self.version = 'latest'
 
@@ -51,7 +57,10 @@ class Plan:
             Populate properties for this plan, sourced from a dict which will
             be sourced from the plan yaml.
 
-            Many of these will end up in docker.client.containers.run()
+            Many of these will end up in docker.client.containers.run(), meaning
+            that even if we dont explicitly validate/expect an option, one can
+            still add arbitrary options to a container from a plan.
+
             ref: https://docker-py.readthedocs.io/en/stable/containers.html#docker.models.containers.ContainerCollection.run
 
             :param d:
@@ -67,6 +76,12 @@ class Plan:
             setattr(self, k, v) if k in dir(self) else None
 
         self.validate_volumes()
+        self.populate_ports()
+        self.check_host_ports()
+
+        # once we have validated ports, unset the property.
+        # we make use of a network proxy container for port mappings.
+        self.ports = {}
 
     def validate_volumes(self):
         """
@@ -88,6 +103,48 @@ class Plan:
             nv = str(Path(v).expanduser().resolve())
             logger.debug(f'normalised host volume is {nv}')
             self.volumes[nv] = self.volumes.pop(v)
+
+    def populate_ports(self):
+        """
+            Translates the ports property to a list of
+            tuples in the exposed_ports property.
+        """
+
+        if not self.ports:
+            return
+
+        if isinstance(self.ports, int):
+            logger.debug(f'adding port map for single port {self.ports}')
+            self.exposed_ports.append((self.ports, self.ports))
+            return
+
+        if isinstance(self.ports, dict):
+            for inside, outside in self.ports.items():
+                logger.debug(f'adding port map for port pair {inside}<-{outside}')
+                self.exposed_ports.append((inside, outside))
+                return
+
+        # if we got a list, recursively validate & map
+        if isinstance(self.ports, list):
+            logger.debug(f'processing port map list recursively')
+            o = self.ports
+            for mapping in o:
+                self.ports = mapping
+                self.populate_ports()
+
+    def check_host_ports(self):
+        """
+            Check that a plan is not trying to expose the same port
+            more than once.
+        """
+
+        h = []
+
+        for p in self.exposed_ports:
+            inside, outside = p
+            if outside in h:
+                logger.warning(f'plan {self.name} is trying to expose host port {outside} more than once')
+            h.append(outside)
 
     def add_commands(self, c: Union[str, list]):
         """
@@ -130,6 +187,8 @@ class Plan:
             'command': self.command,
             'remove': True,
             'volumes': self.volumes,
+            'ports': self.ports,
+            'environment': self.environment,
             'detach': True  # it's up to the caller to attach after launch for logs
         }
 
@@ -147,11 +206,10 @@ class Loader(object):
 
     def __init__(self):
         self.plan_path = PLAN_DIRECTORY
-        self.plan_path.mkdir(parents=True, exist_ok=True)
-
         self.plans = []
 
         self.load()
+        # self.check_host_ports()
 
     def load(self):
         """
@@ -177,6 +235,20 @@ class Loader(object):
             p.from_dict(d)
 
             self.plans.append(p)
+
+    # def check_host_ports(self):
+    #     """
+    #         Checks if there are any host port conflicts.
+    #     """
+    #
+    #     h = {}
+    #     for plan in self.valid_plans():
+    #         for p in plan.exposed_ports:
+    #             inside, outside = p
+    #             if outside in h:
+    #                 logger.warning(f'plan {plan.name} is trying to expose host port {outside} which is also '
+    #                                f'configured in plan {h[outside]}')
+    #             h[outside] = plan.name
 
     def valid_plans(self):
         """

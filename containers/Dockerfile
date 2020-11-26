@@ -1,0 +1,14 @@
+FROM alpine
+
+ENV REMOTE_HOST=localhost
+ENV REMOTE_PORT=80
+ENV LOCAL_PORT=80
+
+RUN apk add --update --no-cache \
+		socat \
+	&& rm -rf /var/cache/apk/
+
+CMD socat tcp-listen:$LOCAL_PORT,reuseaddr,fork tcp:$REMOTE_HOST:$REMOTE_PORT & pid=$! && \
+    trap "kill $pid" SIGINT && \
+	echo "forwarding $LOCAL_PORT to $REMOTE_HOST:$REMOTE_PORT ($pid)" && \
+	wait $pid

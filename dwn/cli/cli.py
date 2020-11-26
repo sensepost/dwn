@@ -3,9 +3,10 @@ import sys
 import click
 from loguru import logger
 
+from .commands.network import network
 from .commands.plans import plans
-from .commands.single import check, run
-from ..constants import PLAN_DIRECTORY
+from .commands.single import check, run, stop, show
+from ..config import PLAN_DIRECTORY
 
 
 @click.group()
@@ -21,9 +22,12 @@ def cli(debug):
 # singles
 cli.add_command(check)
 cli.add_command(run)
+cli.add_command(show)
+cli.add_command(stop)
 
 # groups
 cli.add_command(plans)
+cli.add_command(network)
 
 if __name__ == '__main__':
     cli()
