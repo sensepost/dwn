@@ -3,9 +3,9 @@ import sys
 import click
 from loguru import logger
 
+from .commands.base import check, run, stop, show
 from .commands.network import network
 from .commands.plans import plans
-from .commands.base import check, run, stop, show
 from ..config import PLAN_DIRECTORY
 
 
@@ -14,7 +14,9 @@ from ..config import PLAN_DIRECTORY
 def cli(debug):
     if not debug:
         logger.remove()
-        logger.add(sys.stderr, level="INFO")
+        logger.add(sys.stderr,
+                   format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+                          "<level>{level: <8}</level> | <level>{message}</level>", level="INFO")
 
     logger.debug(f'plan directory is {PLAN_DIRECTORY}')
 
