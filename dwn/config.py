@@ -8,6 +8,7 @@ BASE = Path('~/.dwn').expanduser()
 
 PLAN_DIRECTORY = BASE / 'plans'
 CONFIG_PATH = BASE / 'config.yml'
+NETWORK_CONTAINER_PATH = Path(__file__).parent.parent / 'containers'
 
 # ensure basic files & directories exist
 PLAN_DIRECTORY.mkdir(parents=True, exist_ok=True)

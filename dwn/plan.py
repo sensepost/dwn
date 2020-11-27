@@ -4,10 +4,10 @@ from typing import Union, Set, List, Dict, Any
 import docker
 import yaml
 from docker import DockerClient, models
-from docker.errors import NotFound
+from docker.errors import NotFound, ImageNotFound
 from loguru import logger
 
-from .config import PLAN_DIRECTORY, config
+from .config import PLAN_DIRECTORY, NETWORK_CONTAINER_PATH, config
 
 
 class Plan:
@@ -245,6 +245,31 @@ class Container(object):
 
         return f'{self.get_net_container_name()}{outside}_{inside}'
 
+    def _ensure_net_exists(self):
+        """
+            Ensures that the network image and docker network exists.
+        """
+
+        try:
+            self.get_client().images.get(config.net_container_name())
+            self.get_client().networks.get(config.net_name())
+        except ImageNotFound as _:
+            logger.info(f'network image {config.net_container_name()} does not exist, building it')
+            _, logs = self.get_client().images.build(
+                path=str(NETWORK_CONTAINER_PATH), pull=True, tag=config.net_container_name(),
+                rm=True, forcerm=True)
+
+            for log in logs:
+                logger.debug(log)
+
+            logger.info(f'network container {config.net_container_name()} built')
+            self._ensure_net_exists()
+
+        except NotFound as _:
+            logger.info(f'docker network {config.net_name()} does not exist, creating it')
+            self.get_client().networks.create(name=config.net_name(), check_duplicate=True)
+            self._ensure_net_exists()
+
     def containers(self) -> list:
         """
             Returns containers relevant to this plan.
@@ -265,6 +290,8 @@ class Container(object):
         """
             Run the containers for a plan
         """
+
+        self._ensure_net_exists()
 
         opts = self.plan.run_options()
         opts['name'] = self.get_container_name()
@@ -287,6 +314,8 @@ class Container(object):
         """
             Run a network container for a plan
         """
+
+        self._ensure_net_exists()
 
         logger.debug(f'starting network container for {self.get_net_container_name()} mapping {outside}->{inside}')
         self.get_client().containers.run(config.net_container_name(), detach=True,

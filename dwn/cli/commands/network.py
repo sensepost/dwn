@@ -1,11 +1,9 @@
-from pathlib import Path
-
 import click
 import docker
 from docker.errors import DockerException
 from loguru import logger
 
-from dwn.config import config
+from dwn.config import config, NETWORK_CONTAINER_PATH
 from dwn.plan import Loader
 
 
@@ -32,13 +30,11 @@ def build_container():
         logger.error(f'docker client failed: {e}')
         return
 
-    # path to the network Dockerfile
-    d = Path(__file__).resolve().parent.parent.parent.parent / 'containers'
-
-    logger.debug(f'path to docker context is: {d}')
+    logger.debug(f'path to docker context is: {NETWORK_CONTAINER_PATH}')
     logger.debug(f'network container will be called {config.net_container_name()}')
 
-    image, logs = client.images.build(path=str(d), pull=True, tag=config.net_container_name())
+    image, logs = client.images.build(
+        path=str(NETWORK_CONTAINER_PATH), pull=True, tag=config.net_container_name())
 
     for log in logs:
         logger.debug(log)
