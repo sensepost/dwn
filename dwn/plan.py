@@ -382,6 +382,8 @@ class Loader(object):
             if not d:
                 continue
 
+            print(d)
+
             if self.get_plan(d['name'], valid_only=False):
                 logger.warning(f'not loading duplicate plan called {d["name"]} from {p}')
                 continue

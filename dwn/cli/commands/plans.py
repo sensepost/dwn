@@ -1,5 +1,6 @@
 import click
 import docker
+import yaml
 from docker.errors import DockerException, ImageNotFound
 from loguru import logger
 
@@ -103,3 +104,29 @@ def pull(name):
             continue
 
         logger.info(f'image {p.image}:{p.version} pulled')
+
+
+@plans.command()
+@click.argument('name', required=False)
+def new(name):
+    p = {
+        'name': name if name else 'name',
+        'image': f'{name}/{name}' if name else 'vendor/image',
+        'command': 'gowitness report serve -a 0.0.0.0:7171',
+        'detach': True,
+        'volumes': {
+            '.': {'bind': '/data'}
+        },
+        'ports': [
+            {7171: 7171}
+        ]
+    }
+
+    click.echo('# example plan')
+    click.echo('# keys (command, detach, volumes, ports) are optional')
+    click.echo('# volumes are host:container')
+    click.echo('# port binding is container:host')
+    click.echo()
+    click.echo('---')
+    click.echo()
+    click.echo(yaml.dump(p, sort_keys=False))
