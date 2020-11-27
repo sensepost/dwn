@@ -60,24 +60,5 @@ def add(name, outside, inside):
         logger.error(f'unable to find plan {name}')
         return
 
-    try:
-        client = docker.from_env()
-    except DockerException as e:
-        logger.error(f'docker client error: {e}')
-        return
-
-    opts = plan.run_options()
-    opts['name'] = config.object_name(opts['name'])
-
-    logger.debug(f'starting network container for {plan.name} mapping'
-                 f' {outside}->{inside}')
-    client.containers.run(config.net_container_name(), detach=True,
-                          environment={
-                              'REMOTE_HOST': opts["name"],
-                              'REMOTE_PORT': inside,
-                              'LOCAL_PORT': outside,
-                          },
-                          stderr=True, stdout=True, remove=True,
-                          network=config.net_name(), ports={outside: outside},
-                          name=f'{opts["name"]}_net_{outside}_{inside}')
-    logger.info(f'binding for {outside}->{opts["name"]}:{inside} created')
+    plan.container.run_net(outside, inside)
+    logger.info(f'port binding for {outside}->{plan.name}:{inside} created')

@@ -5,7 +5,7 @@ from loguru import logger
 
 from .commands.network import network
 from .commands.plans import plans
-from .commands.single import check, run, stop, show
+from .commands.base import check, run, stop, show
 from ..config import PLAN_DIRECTORY
 
 
@@ -19,7 +19,7 @@ def cli(debug):
     logger.debug(f'plan directory is {PLAN_DIRECTORY}')
 
 
-# singles
+# base
 cli.add_command(check)
 cli.add_command(run)
 cli.add_command(show)

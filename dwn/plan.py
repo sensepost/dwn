@@ -1,10 +1,13 @@
 from pathlib import Path
 from typing import Union, Set, List, Dict, Any
 
+import docker
 import yaml
+from docker import DockerClient, models
+from docker.errors import NotFound
 from loguru import logger
 
-from .config import PLAN_DIRECTORY
+from .config import PLAN_DIRECTORY, config
 
 
 class Plan:
@@ -24,6 +27,7 @@ class Plan:
     image: str
     version: str
     command: Union[str, list]
+    container: 'Container'
 
     def __init__(self, p: Path):
         self.plan_path = p
@@ -37,6 +41,7 @@ class Plan:
         self.detach = False
         self.version = 'latest'
 
+        self.container = Container(self)
         self.valid = True
 
         self.required_keys = {'name', 'image'}
@@ -197,6 +202,119 @@ class Plan:
         return f'name={self.name} image={self.image} version={self.version} valid={self.valid}'
 
 
+class Container(object):
+    """
+        Container is a Plan's container helper
+    """
+
+    plan: Plan
+    client: Union[DockerClient, None]
+
+    def __init__(self, plan):
+        self.plan = plan
+        self.client = None
+
+    def get_client(self):
+        """
+            Get a fresh docker client, if needed.
+        """
+
+        if not self.client:
+            self.client = docker.from_env()
+
+        return self.client
+
+    def get_container_name(self):
+        """
+            Returns a well formatted object name
+        """
+
+        return config.object_name(self.plan.name)
+
+    def get_net_container_name(self):
+        """
+            Returns a well formatted net object name
+        """
+
+        return f'{config.object_name(self.plan.name)}_net_'
+
+    def get_net_container_name_with_ports(self, outside: int, inside: int):
+        """
+            Returns a well formatted net object name with ports
+        """
+
+        return f'{self.get_net_container_name()}{outside}_{inside}'
+
+    def containers(self) -> list:
+        """
+            Returns containers relevant to this plan.
+        """
+
+        c = []
+
+        for container in self.get_client().containers.list():
+            if not container.name == self.get_container_name():
+                if not container.name.startswith(self.get_net_container_name()):
+                    continue
+
+            c.append(container)
+
+        return c
+
+    def run(self) -> models.containers.Container:
+        """
+            Run the containers for a plan
+        """
+
+        opts = self.plan.run_options()
+        opts['name'] = self.get_container_name()
+
+        logger.debug(f'starting service container {opts["name"]}')
+
+        container = self.get_client().containers.run(
+            self.plan.image_version(), network=config.net_name(), **opts)
+
+        if not self.plan.exposed_ports:
+            return container
+
+        for port_map in self.plan.exposed_ports:
+            inside, outside = port_map[0], port_map[1]
+            self.run_net(outside, inside)
+
+        return container
+
+    def run_net(self, outside: int, inside: int):
+        """
+            Run a network container for a plan
+        """
+
+        name = self.get_container_name()
+
+        logger.debug(f'starting network container for {name} mapping {outside}->{inside}')
+        self.get_client().containers.run(config.net_container_name(), detach=True,
+                                         environment={
+                                             'REMOTE_HOST': name,
+                                             'REMOTE_PORT': inside, 'LOCAL_PORT': outside,
+                                         }, stderr=True, stdout=True, remove=True,
+                                         network=config.net_name(), ports={outside: outside},
+                                         name=self.get_net_container_name_with_ports(outside, inside))
+
+    def stop(self):
+        """
+            Stops containers
+        """
+
+        for container in self.containers():
+            logger.debug(f'stopping container {container.name}')
+            try:
+                container.stop()
+            except NotFound as _:
+                # if the container is not found, it may already be gone (exited?)
+                pass
+            except Exception as e:
+                logger.warning(f'failed to stop container with error {type(e)}: {e}')
+
+
 class Loader(object):
     """
         Loader handles plan loading and record keeping of valid plans
@@ -210,7 +328,6 @@ class Loader(object):
         self.plans = []
 
         self.load()
-        # self.check_host_ports()
 
     def load(self):
         """
@@ -236,20 +353,6 @@ class Loader(object):
             p.from_dict(d)
 
             self.plans.append(p)
-
-    # def check_host_ports(self):
-    #     """
-    #         Checks if there are any host port conflicts.
-    #     """
-    #
-    #     h = {}
-    #     for plan in self.valid_plans():
-    #         for p in plan.exposed_ports:
-    #             inside, outside = p
-    #             if outside in h:
-    #                 logger.warning(f'plan {plan.name} is trying to expose host port {outside} which is also '
-    #                                f'configured in plan {h[outside]}')
-    #             h[outside] = plan.name
 
     def valid_plans(self):
         """
