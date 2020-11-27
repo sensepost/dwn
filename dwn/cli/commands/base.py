@@ -56,10 +56,6 @@ def run(name, extra_args):
         Run a plan
     """
 
-    if not name:
-        logger.error('please specify a plan name')
-        return
-
     loader = Loader()
     if not (plan := loader.get_plan(name)):
         logger.error(f'unable to find plan {name}')
@@ -69,14 +65,10 @@ def run(name, extra_args):
     plan.add_commands(extra_args) if extra_args else None
 
     for v, o in plan.volumes.items():
-        logger.info(f'host path {v} is mounted in container at {o["bind"]}')
+        logger.info(f'volume {v} -> {o["bind"]}')
 
     for m in plan.exposed_ports:
-        logger.info(f'host port {m[1]} is mapped to container port {m[0]}')
-
-    # update the container name to use the object prefix
-    opts = plan.run_options()
-    opts['name'] = config.object_name(opts['name'])
+        logger.info(f'port {m[1]} -> {m[0]}')
 
     service = plan.container.run()
 
@@ -98,12 +90,6 @@ def show():
     """
         Show running plans
     """
-
-    try:
-        client = docker.from_env()
-    except DockerException as e:
-        logger.error(f'failed to connect to docker: {e}')
-        return
 
     loader = Loader()
 

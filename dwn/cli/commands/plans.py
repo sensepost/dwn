@@ -35,10 +35,6 @@ def info(name):
         Displays detailed information about a plan.
     """
 
-    if not name:
-        logger.error('must specify a plan name')
-        return
-
     loader = Loader()
 
     if not (plan := loader.get_plan(name)):
@@ -123,6 +119,7 @@ def new(name):
     }
 
     click.echo('# example plan')
+    click.echo('#')
     click.echo('# keys (command, detach, volumes, ports) are optional')
     click.echo('# volumes are host:container')
     click.echo('# port binding is container:host')
