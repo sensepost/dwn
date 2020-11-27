@@ -62,3 +62,21 @@ def add(name, outside, inside):
 
     plan.container.run_net(outside, inside)
     logger.info(f'port binding for {outside}->{plan.name}:{inside} created')
+
+
+@network.command()
+@click.argument('name')
+@click.option('--outside', '-o', required=True, help='the outside, host port to open')
+@click.option('--inside', '-i', required=True, help='the inside, container port to forward to')
+def remove(name, outside, inside):
+    """
+        Removes a port mapping from a plan
+    """
+
+    loader = Loader()
+    if not (plan := loader.get_plan(name)):
+        logger.error(f'unable to find plan {name}')
+        return
+
+    plan.container.stop_net(outside, inside)
+    logger.info(f'port binding for {outside}->{plan.name}:{inside} removed')

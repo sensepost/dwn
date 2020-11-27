@@ -288,12 +288,10 @@ class Container(object):
             Run a network container for a plan
         """
 
-        name = self.get_container_name()
-
-        logger.debug(f'starting network container for {name} mapping {outside}->{inside}')
+        logger.debug(f'starting network container for {self.get_net_container_name()} mapping {outside}->{inside}')
         self.get_client().containers.run(config.net_container_name(), detach=True,
                                          environment={
-                                             'REMOTE_HOST': name,
+                                             'REMOTE_HOST': self.get_net_container_name(),
                                              'REMOTE_PORT': inside, 'LOCAL_PORT': outside,
                                          }, stderr=True, stdout=True, remove=True,
                                          network=config.net_name(), ports={outside: outside},
@@ -313,6 +311,16 @@ class Container(object):
                 pass
             except Exception as e:
                 logger.warning(f'failed to stop container with error {type(e)}: {e}')
+
+    def stop_net(self, outside: int, inside: int):
+        """
+            Stops a specific network container
+        """
+
+        for container in self.containers():
+            if container.name == self.get_net_container_name_with_ports(outside, inside):
+                logger.info(f'stopping network container for {inside}<-{outside}')
+                container.stop()
 
 
 class Loader(object):

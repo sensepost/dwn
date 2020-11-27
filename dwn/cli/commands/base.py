@@ -16,7 +16,6 @@ def check():
     # plans
     loader = Loader()
     logger.info(f'loaded {len(loader.valid_plans())} valid plans')
-
     logger.info('checking docker environment')
 
     # docker
