@@ -5,9 +5,8 @@ import docker
 import yaml
 from docker import DockerClient, models
 from docker.errors import NotFound, ImageNotFound
-from loguru import logger
 
-from .config import config, \
+from .config import config, console, \
     USER_PLAN_DIRECTORY, DIST_PLAN_DIRECTORY, NETWORK_CONTAINER_PATH
 
 
@@ -76,7 +75,7 @@ class Plan:
 
         # warn if a plan appears to be invalid
         if not self.has_required_keys(d):
-            logger.warning(f'incomplete plan format for {self.plan_path}')
+            console.warn(f'incomplete plan format for [bold]{self.plan_path}[/]')
             self.valid = False
 
         for k, v in d.items():
@@ -100,15 +99,15 @@ class Plan:
             return
 
         for v in list(self.volumes):
-            logger.debug(f'processing plan volume {v}')
+            console.debug(f'processing plan [cyan]{self.name}[/] volume [bold]{v}[/]')
 
             if 'bind' not in self.volumes[v]:
-                logger.warning(f'plan volume does not have a bind')
+                console.warn(f'plan [cyan]{self.name}[/] volume [bold]{v}[/] does not have a bind')
                 self.valid = False
                 return
 
             nv = str(Path(v).expanduser().resolve())
-            logger.debug(f'normalised host volume is {nv}')
+            console.debug(f'normalised plan [cyan]{self.name}[/] host volume [bold]{v}[/] is [bold]{nv}[/]')
             self.volumes[nv] = self.volumes.pop(v)
 
     def populate_ports(self):
@@ -121,19 +120,22 @@ class Plan:
             return
 
         if isinstance(self.ports, int):
-            logger.debug(f'adding port map for single port {self.ports}')
+            console.debug(f'adding plan [cyan]{self.name}[/] port map for single '
+                          f'port: [bold]{self.ports}<-{self.ports}[/]')
             self.exposed_ports.append((self.ports, self.ports))
             return
 
         if isinstance(self.ports, dict):
             for inside, outside in self.ports.items():
-                logger.debug(f'adding port map for port pair {inside}<-{outside}')
+                console.debug(f'adding plan [cyan]{self.name}[/] port map for port '
+                              f'pair [bold]{inside}<-{outside}[/]')
                 self.exposed_ports.append((inside, outside))
                 return
 
         # if we got a list, recursively validate & map
         if isinstance(self.ports, list):
-            logger.debug(f'processing port map list recursively')
+            console.debug(f'processing plan [cyan]{self.name}[/] port map list '
+                          f'({self.ports}) recursively')
             o = self.ports
             for mapping in o:
                 self.ports = mapping
@@ -150,7 +152,8 @@ class Plan:
         for p in self.exposed_ports:
             inside, outside = p
             if outside in h:
-                logger.warning(f'plan {self.name} is trying to expose host port {outside} more than once')
+                console.warn(f'plan [cyan]{self.name}[/] is trying to expose host '
+                             f'port [bold]{outside}[/ more than once')
                 self.valid = False
             h.append(outside)
 
@@ -163,11 +166,10 @@ class Plan:
         """
 
         c = list(c)
-        logger.debug(f'adding commands to plan {c}')
+        console.debug(f'adding commands {c} to plan {self.name}')
 
         # cast the internal command to a list
         if isinstance(self.command, str):
-            logger.debug('casting plan command to a list')
             self.command = [self.command]
 
         if isinstance(c, list):
@@ -256,19 +258,18 @@ class Container(object):
             self.get_client().images.get(config.net_container_name())
             self.get_client().networks.get(config.net_name())
         except ImageNotFound as _:
-            logger.info(f'network image {config.net_container_name()} does not exist, building it')
+            console.info(f'network image [bold]{config.net_container_name()}[/] does not exist, quickly building it')
             _, logs = self.get_client().images.build(
-                path=str(NETWORK_CONTAINER_PATH), pull=True, tag=config.net_container_name(),
-                rm=True, forcerm=True)
+                path=str(NETWORK_CONTAINER_PATH), pull=True, tag=config.net_container_name(), rm=True, forcerm=True)
 
             for log in logs:
-                logger.debug(log)
+                console.debug(log)
 
-            logger.info(f'network container {config.net_container_name()} built')
+            console.info(f'network container [bold]{config.net_container_name()}[/] built')
             self._ensure_net_exists()
 
         except NotFound as _:
-            logger.info(f'docker network {config.net_name()} does not exist, creating it')
+            console.info(f'docker network [bold]{config.net_name()}[/] does not exist, creating it')
             self.get_client().networks.create(name=config.net_name(), check_duplicate=True)
             self._ensure_net_exists()
 
@@ -307,8 +308,6 @@ class Container(object):
                 continue
 
             outside, inside = port_map[0], port_map[1]
-            logger.debug(f'{container.name}, {inside}<-{outside}')
-
             p.append((outside, inside))
 
         return p
@@ -319,14 +318,14 @@ class Container(object):
         """
 
         self._ensure_net_exists()
+        console.debug(f'starting service container [bold]{self.get_container_name()}[/]'
+                      f' for plan [bold]{self.plan.name}[/]')
 
         opts = self.plan.run_options()
         opts['name'] = self.get_container_name()
 
-        logger.debug(f'starting service container {opts["name"]}')
-
-        container = self.get_client().containers.run(
-            self.plan.image_version(), network=config.net_name(), **opts)
+        container = self.get_client(). \
+            containers.run(self.plan.image_version(), network=config.net_name(), **opts)
 
         if not self.plan.exposed_ports:
             return container
@@ -344,15 +343,17 @@ class Container(object):
 
         self._ensure_net_exists()
 
-        logger.debug(f'starting network container for {self.get_net_container_name()} '
-                     f'mapping {outside}->{inside} as {self.get_net_container_name_with_ports(outside, inside)}')
-        self.get_client().containers.run(config.net_container_name(), detach=True,
-                                         environment={
-                                             'REMOTE_HOST': self.get_container_name(),
-                                             'REMOTE_PORT': inside, 'LOCAL_PORT': outside,
-                                         }, stderr=True, stdout=True, remove=True,
-                                         network=config.net_name(), ports={outside: outside},
-                                         name=self.get_net_container_name_with_ports(outside, inside))
+        console.debug(f'starting network proxy [green]{inside}[/]<-{self.get_container_name()}<-'
+                      f'[red]{outside}[/] for plan [bold]{self.plan.name}[/]')
+
+        self.get_client(). \
+            containers.run(config.net_container_name(), detach=True,
+                           environment={
+                               'REMOTE_HOST': self.get_container_name(),
+                               'REMOTE_PORT': inside, 'LOCAL_PORT': outside,
+                           }, stderr=True, stdout=True, remove=True,
+                           network=config.net_name(), ports={outside: outside},
+                           name=self.get_net_container_name_with_ports(outside, inside))
 
     def stop(self):
         """
@@ -360,14 +361,14 @@ class Container(object):
         """
 
         for container in self.containers():
-            logger.debug(f'stopping container {container.name}')
+            console.debug(f'stopping container [bold]{container.name}[/] for plan [cyan]{self.plan.name}[/]')
             try:
                 container.stop()
             except NotFound as _:
                 # if the container is not found, it may already be gone (exited?)
                 pass
             except Exception as e:
-                logger.warning(f'failed to stop container with error {type(e)}: {e}')
+                console.warn(f'failed to stop container with error [dim]{type(e)}[/]: [bold]{e}[/]')
 
     def stop_net(self, outside: int, inside: int):
         """
@@ -375,10 +376,8 @@ class Container(object):
         """
 
         for container in self.containers():
-            logger.debug(f'checking if container {container.name} == '
-                         f'{self.get_net_container_name_with_ports(outside, inside)}')
             if container.name == self.get_net_container_name_with_ports(outside, inside):
-                logger.info(f'stopping network container for {inside}<-{outside}')
+                console.info(f'stopping network container for [green]{inside}[/]<-[red]{outside}[/]')
                 container.stop()
 
 
@@ -402,7 +401,7 @@ class Loader(object):
         """
 
         for p in DIST_PLAN_DIRECTORY.glob('**/*.yml'):
-            logger.debug(f'processing dist plan: {p}')
+            console.debug(f'processing dist plan [bold]{p}[/]')
 
             with p.open() as f:
                 d = yaml.load(f, Loader=yaml.SafeLoader)
@@ -420,7 +419,7 @@ class Loader(object):
         """
 
         for p in USER_PLAN_DIRECTORY.glob('**/*.yml'):
-            logger.debug(f'processing plan: {p}')
+            console.debug(f'processing plan [bold]{p}[/]')
 
             with p.open() as f:
                 d = yaml.load(f, Loader=yaml.SafeLoader)
@@ -429,7 +428,7 @@ class Loader(object):
                 continue
 
             if self.get_plan(d['name'], valid_only=False):
-                logger.debug(f'possible duplicate plan called {d["name"]} from {p}')
+                console.debug(f'possible duplicate plan called {d["name"]} from {p}')
 
             p = Plan(p)
             p.from_dict(d)

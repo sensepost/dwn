@@ -1,22 +1,16 @@
-import sys
-
 import click
-from loguru import logger
 
 from dwn.cli.commands.base import check, run, stop, show
 from dwn.cli.commands.network import network
 from dwn.cli.commands.plans import plans
+from dwn.config import console
 
 
 @click.group()
 @click.option('--debug', is_flag=True, default=False, help='enable debug logging')
 def cli(debug):
-    if not debug:
-        logger.remove()
-        logger.add(sys.stderr,
-                   format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-                          "<level>{level: <8}</level> | <level>{message}</level>", level="INFO")
-        return
+    if debug:
+        console.debug_enabled = True
 
 
 # base

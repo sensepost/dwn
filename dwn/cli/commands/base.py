@@ -1,7 +1,6 @@
 import click
 import docker
 from docker.errors import DockerException, ImageNotFound, NotFound
-from loguru import logger
 from rich.table import Table
 
 from dwn.config import config, console
@@ -41,8 +40,7 @@ def check():
                      f'use  [bold]\'docker network create {config.net_name()}\'[/] to should solve that.')
 
     except DockerException as e:
-        logger.error(f'docker client error: {e}')
-        logger.error(type(e))
+        console.error(f'docker client error type [dim]{type(e)}[/]: [bold]{e}[/]')
 
     console.info('[green]everything seems to be ok to use dwn![/]')
 

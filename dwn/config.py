@@ -1,3 +1,4 @@
+import inspect
 import random
 import string
 from pathlib import Path
@@ -76,9 +77,11 @@ class Console(object):
     """
 
     rich: RichConsole
+    debug_enabled: bool
 
     def __init__(self):
         self.rich = RichConsole()
+        self.debug_enabled = False
 
     def info(self, m: str):
         self.rich.print(f'(i) {m}')
@@ -88,6 +91,17 @@ class Console(object):
 
     def error(self, m: str):
         self.rich.print(f'(e) [red]{m}[/]')
+
+    def debug(self, m: str):
+        if not self.debug_enabled:
+            return
+
+        # context!
+        frame = inspect.currentframe().f_back
+        func = frame.f_code
+        module = inspect.getmodule(frame).__name__
+
+        self.rich.print(f'(d) [dim]{module}.{func.co_name}:{frame.f_lineno} - {m}[/]')
 
     def __getattr__(self, item):
         return getattr(self.rich, item)
