@@ -1,4 +1,3 @@
 name: wpscan
 image: wpscanteam/wpscan
 version: latest
-detach: false

@@ -1,6 +1,5 @@
 name: gowitness
 image: leonjza/gowitness
-detach: false
 command: gowitness
 volumes:
   .:

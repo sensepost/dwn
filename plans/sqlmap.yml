@@ -1,4 +1,6 @@
 name: sqlmap
 image: googlesky/sqlmap
 version: latest
-detach: false
+volumes:
+  sqlmap:
+    bind: /root/.sqlmap

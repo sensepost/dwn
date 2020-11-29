@@ -5,7 +5,4 @@ volumes:
   .:
     bind: /usr/share/nginx/html
 ports:
-  # container: host
-  - 80: 80
-  - 80: 88
-  - 4444
+  - 80: 8888

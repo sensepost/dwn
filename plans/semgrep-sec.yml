@@ -1,6 +1,5 @@
 name: semgrep-sec
 image: returntocorp/semgrep
-detach: false
 command: --config=p/r2c-security-audit
 volumes:
   .:
