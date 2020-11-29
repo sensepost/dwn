@@ -6,12 +6,13 @@ import yaml
 
 BASE = Path('~/.dwn').expanduser()
 
-PLAN_DIRECTORY = BASE / 'plans'
+USER_PLAN_DIRECTORY = BASE / 'plans'
+DIST_PLAN_DIRECTORY = Path(__file__).parent.parent / 'plans'
 CONFIG_PATH = BASE / 'config.yml'
-NETWORK_CONTAINER_PATH = Path(__file__).parent.parent / 'containers'
+NETWORK_CONTAINER_PATH = Path(__file__).parent / 'assets'
 
 # ensure basic files & directories exist
-PLAN_DIRECTORY.mkdir(parents=True, exist_ok=True)
+USER_PLAN_DIRECTORY.mkdir(parents=True, exist_ok=True)
 CONFIG_PATH.touch(exist_ok=True)
 
 

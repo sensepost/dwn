@@ -6,11 +6,11 @@ from loguru import logger
 from .commands.base import check, run, stop, show
 from .commands.network import network
 from .commands.plans import plans
-from ..config import PLAN_DIRECTORY
+from ..config import USER_PLAN_DIRECTORY
 
 
 @click.group()
-@click.option('--debug', is_flag=True, default=False, help='enable debug loggin')
+@click.option('--debug', is_flag=True, default=False, help='enable debug logging')
 def cli(debug):
     if not debug:
         logger.remove()
@@ -18,7 +18,7 @@ def cli(debug):
                    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
                           "<level>{level: <8}</level> | <level>{message}</level>", level="INFO")
 
-    logger.debug(f'plan directory is {PLAN_DIRECTORY}')
+    logger.debug(f'plan directory is {USER_PLAN_DIRECTORY}')
 
 
 # base

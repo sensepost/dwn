@@ -7,7 +7,8 @@ from docker import DockerClient, models
 from docker.errors import NotFound, ImageNotFound
 from loguru import logger
 
-from .config import PLAN_DIRECTORY, NETWORK_CONTAINER_PATH, config
+from .config import config, \
+    USER_PLAN_DIRECTORY, DIST_PLAN_DIRECTORY, NETWORK_CONTAINER_PATH
 
 
 class Plan:
@@ -66,7 +67,8 @@ class Plan:
             that even if we dont explicitly validate/expect an option, one can
             still add arbitrary options to a container from a plan.
 
-            ref: https://docker-py.readthedocs.io/en/stable/containers.html#docker.models.containers.ContainerCollection.run
+            ref: https://docker-py.readthedocs.io/en/
+                    stable/containers.html#docker.models.containers.ContainerCollection.run
 
             :param d:
             :return:
@@ -358,22 +360,38 @@ class Loader(object):
     """
 
     plans: List[Plan]
-    plan_path: Union[Path]
 
     def __init__(self):
-        self.plan_path = PLAN_DIRECTORY
         self.plans = []
 
-        self.load()
+        self.load_dist_plans()
+        self.load_user_plans()
 
-    def load(self):
+    def load_dist_plans(self):
+        """
+            Load .yml files from the plans/ directory
+
+        """
+
+        for p in DIST_PLAN_DIRECTORY.glob('**/*.yml'):
+            logger.debug(f'processing dist plan: {p}')
+
+            with p.open() as f:
+                d = yaml.load(f, Loader=yaml.SafeLoader)
+
+            p = Plan(p)
+            p.from_dict(d)
+
+            self.plans.append(p)
+
+    def load_user_plans(self):
         """
             Load .yml files from the ~/.dwn/plans directory
 
             :return:
         """
 
-        for p in self.plan_path.glob('**/*.yml'):
+        for p in USER_PLAN_DIRECTORY.glob('**/*.yml'):
             logger.debug(f'processing plan: {p}')
 
             with p.open() as f:
@@ -383,8 +401,7 @@ class Loader(object):
                 continue
 
             if self.get_plan(d['name'], valid_only=False):
-                logger.warning(f'not loading duplicate plan called {d["name"]} from {p}')
-                continue
+                logger.debug(f'possible duplicate plan called {d["name"]} from {p}')
 
             p = Plan(p)
             p.from_dict(d)

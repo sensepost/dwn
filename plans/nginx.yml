@@ -1,0 +1,9 @@
+name: nginx
+image: nginx
+detach: true
+volumes:
+  .:
+    bind: /usr/share/nginx/html
+ports:
+  # container: host
+  - 80: 80

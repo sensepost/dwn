@@ -1,0 +1,10 @@
+name: netcat-reverse
+image: alpine
+detach: true
+command:
+ - /usr/bin/nc
+ - -l
+ - -k
+ - 4444
+ports:
+  4444: 4444

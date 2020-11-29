@@ -1,5 +1,7 @@
 FROM alpine
 
+# This dockerfile is used for network forwarding to services.
+
 ENV REMOTE_HOST=localhost
 ENV REMOTE_PORT=80
 ENV LOCAL_PORT=80

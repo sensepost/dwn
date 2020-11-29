@@ -1,0 +1,4 @@
+name: sqlmap
+image: googlesky/sqlmap
+version: latest
+detach: false
