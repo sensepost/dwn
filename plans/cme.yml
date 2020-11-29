@@ -1,0 +1,5 @@
+name: cme
+image: byt3bl33d3r/crackmapexec
+volumes:
+  cme:
+    bind: /root/.cme
