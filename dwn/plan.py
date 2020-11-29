@@ -165,18 +165,8 @@ class Plan:
             :return:
         """
 
-        c = list(c)
         console.debug(f'adding commands {c} to plan {self.name}')
-
-        # cast the internal command to a list
-        if isinstance(self.command, str):
-            self.command = [self.command]
-
-        if isinstance(c, list):
-            self.command = self.command + c
-            return
-
-        self.command.append(c)
+        self.command = self.command + ' '.join(c)
 
     def image_version(self) -> str:
         """
