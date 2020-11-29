@@ -3,6 +3,7 @@ import string
 from pathlib import Path
 
 import yaml
+from rich.console import Console as RichConsole
 
 BASE = Path('~/.dwn').expanduser()
 
@@ -68,4 +69,29 @@ class Config(object):
         return self.config['network_container_name']
 
 
+class Console(object):
+    """
+        Console is a wrapper around the Rich Console object to
+        provide some simple convenience methods
+    """
+
+    rich: RichConsole
+
+    def __init__(self):
+        self.rich = RichConsole()
+
+    def info(self, m: str):
+        self.rich.print(f'(i) {m}')
+
+    def warn(self, m: str):
+        self.rich.print(f'(w) [yellow]{m}[/]')
+
+    def error(self, m: str):
+        self.rich.print(f'(e) [red]{m}[/]')
+
+    def __getattr__(self, item):
+        return getattr(self.rich, item)
+
+
 config = Config()
+console = Console()

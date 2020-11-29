@@ -2,8 +2,9 @@ import click
 import docker
 import yaml
 from docker.errors import DockerException, ImageNotFound
-from loguru import logger
+from rich.table import Table
 
+from dwn.config import console
 from dwn.plan import Loader
 
 
@@ -17,15 +18,46 @@ def plans():
 
 
 @plans.command()
-def show():
+@click.option('--detail', is_flag=True, default=False)
+def show(detail):
     """
         Shows all of the available plans
     """
 
     loader = Loader()
 
+    if detail:
+        table = Table(title='dwn plans', show_lines=True, caption=f'{len(loader.valid_plans())} plans')
+        table.add_column('name')
+        table.add_column('path', overflow='fold')
+        table.add_column('volumes', overflow='fold')
+        table.add_column('ports')
+        table.add_column('yaml', no_wrap=True)
+
+        for p in loader.valid_plans():
+            table.add_row(
+                f'[bold]{p.name}[/]',
+                f'[dim]{p.plan_path}[/]',
+                f"[green]{','.join(f'{v[0]}->{v[1]}' for v in p.volumes.items())}[/]",
+                f"[blue]{','.join(f'{o[0]}<-{o[1]}' for o in p.exposed_ports)}[/]",
+                f'{open(p.plan_path).read()}',
+            )
+
+        console.print(table)
+
+        return
+
+    table = Table(title='dwn plans', caption=f'{len(loader.valid_plans())} plans')
+    table.add_column('name')
+    table.add_column('path', overflow='fold')
+
     for p in loader.valid_plans():
-        logger.info(f'plan: {p}')
+        table.add_row(
+            f'[bold]{p.name}[/]',
+            f'[dim]{p.plan_path}[/]',
+        )
+
+    console.print(table)
 
 
 @plans.command()
@@ -38,28 +70,48 @@ def info(name):
     loader = Loader()
 
     if not (plan := loader.get_plan(name)):
-        logger.error(f'unable to find plan {name}')
+        console.error(f'unable to find plan: [bold]{name}[/]')
         return
 
-    logger.info(f'plan name: {plan.name}')
-    logger.info(f'plan image: {plan.image}')
-    logger.info(f'plan version: {plan.version}')
+    table = Table(title=f'plan info for [bold]{name}[/]')
+    table.add_column('section')
+    table.add_column('values')
+
+    table.add_row('plan name', f'[bold]{plan.name}[/]')
+    table.add_row('plan image', f'[bold]{plan.image}[/]')
+    table.add_row('plan version', f'[bold]{plan.version}[/]')
+    table.add_row('')
+    table.add_row('detach', f'[bold]{plan.detach}[/]')
+    table.add_row('command', f'[bold]{plan.command}[/]')
+    table.add_row('port maps', f"[blue]{','.join(f'{o[0]}<-{o[1]}' for o in plan.exposed_ports)}[/]")
+    table.add_row('volume maps', f"[green]{','.join(f'{v[0]}->{v[1]}' for v in plan.volumes.items())}[/]")
+
+    console.print(table)
+
+    table = Table(title=f'docker image info for plan [bold]{name}[/]')
+    table.add_column('section')
+    table.add_column('values')
 
     try:
         client = docker.from_env()
         image = client.images.get(name=plan.image)
     except ImageNotFound as e:
-        logger.error(f'local docker image not found: {e}')
+        table.add_row('docker image', f'[red]local docker image not found: [bold]{e}[/][/]')
+        console.print(table)
         return
     except DockerException as e:
-        logger.error(f'failed to connect to docker: {e}')
+        table.add_row('docker image', f'[red]failed to connect to docker: [bold]{e}[/][/]')
+        console.print(table)
         return
 
-    logger.info(f'docker author: {image.attrs.get("Author")}')
-    logger.info(f'docker created: {image.attrs.get("Created")}')
-    logger.info(f'docker repo tags: {",".join(image.attrs.get("RepoTags"))}')
-    for k, v in image.attrs.get('Config').get('Labels').items():
-        logger.info(f'docker label: {k}={v}')
+    table.add_row('docker author', f'{image.attrs.get("Author")}')
+    table.add_row('docker created', f'{image.attrs.get("Created")}')
+    table.add_row('docker repo tags', f'{",".join(image.attrs.get("RepoTags"))}')
+    if image.attrs.get('Config').get('Labels'):
+        for k, v in image.attrs.get('Config').get('Labels').items():
+            table.add_row('docker label', f'{k}={v}')
+
+    console.print(table)
 
 
 @plans.command()
@@ -78,7 +130,7 @@ def pull(name):
     try:
         client = docker.from_env()
     except DockerException as e:
-        logger.error(f'failed to connect to docker: {e}')
+        console.error(f'failed to connect to docker: [bold]{e}[/e]')
         return
 
     loader = Loader()
@@ -90,16 +142,16 @@ def pull(name):
 
     for p in plan_targets:
         try:
-            logger.info(f'pulling image {p.image}:{p.version}')
+            console.info(f'pulling image [bold]{p.image}:{p.version}[/]')
             client.images.pull(p.image, tag=p.version)
         except ImageNotFound as e:
-            logger.info(f'failed to pull image: {e}')
+            console.error(f'failed to pull image: [bold]{e}[/]')
             continue
         except DockerException as e:
-            logger.error(f'a docker exception occurred: {e}')
+            console.error(f'a docker exception occurred: [bold]{e}[/]')
             continue
 
-        logger.info(f'image {p.image}:{p.version} pulled')
+        console.info(f'image [bold]{p.image}:{p.version}[/] for plan [cyan]{p.name}[/] pulled')
 
 
 @plans.command()
@@ -108,7 +160,7 @@ def new(name):
     p = {
         'name': name if name else 'name',
         'image': f'{name}/{name}' if name else 'vendor/image',
-        'command': 'gowitness report serve -a 0.0.0.0:7171',
+        'command': ['gowitness', 'report', 'serve'],
         'detach': True,
         'volumes': {
             '.': {'bind': '/data'}
@@ -118,12 +170,14 @@ def new(name):
         ]
     }
 
-    click.echo('# example plan')
-    click.echo('#')
-    click.echo('# keys (command, detach, volumes, ports) are optional')
-    click.echo('# volumes are host:container')
-    click.echo('# port binding is container:host')
-    click.echo()
-    click.echo('---')
-    click.echo()
-    click.echo(yaml.dump(p, sort_keys=False))
+    out = f'[dim]# example plan\n' \
+          f'#\n' \
+          f'# keys (command, detach, volumes, ports) are optional\n' \
+          f'# volume are host:container\n' \
+          f'# port binding is container:host\n' \
+          f'\n' \
+          f'---\n' \
+          f'\n' \
+          f'{yaml.dump(p, sort_keys=False)}\n[/]'
+
+    console.print(out)

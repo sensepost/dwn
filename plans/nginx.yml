@@ -7,3 +7,5 @@ volumes:
 ports:
   # container: host
   - 80: 80
+  - 80: 88
+  - 4444

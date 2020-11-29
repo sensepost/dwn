@@ -3,7 +3,7 @@ import docker
 from docker.errors import DockerException
 from loguru import logger
 
-from dwn.config import config, NETWORK_CONTAINER_PATH
+from dwn.config import config, console, NETWORK_CONTAINER_PATH
 from dwn.plan import Loader
 
 
@@ -22,12 +22,12 @@ def build_container():
         Builds the network container
     """
 
-    logger.info('building network container')
+    console.info('building network container')
 
     try:
         client = docker.from_env()
     except DockerException as e:
-        logger.error(f'docker client failed: {e}')
+        console.error(f'docker client failed: [bold]{e}[/]')
         return
 
     logger.debug(f'path to docker context is: {NETWORK_CONTAINER_PATH}')
@@ -39,7 +39,7 @@ def build_container():
     for log in logs:
         logger.debug(log)
 
-    logger.info(f'network container {config.net_container_name()} built')
+    console.info(f'network container \'{config.net_container_name()}\' built')
 
 
 @network.command()
@@ -53,11 +53,11 @@ def add(name, outside, inside):
 
     loader = Loader()
     if not (plan := loader.get_plan(name)):
-        logger.error(f'unable to find plan {name}')
+        console.error(f'unable to find plan [bold]{name}[/]')
         return
 
     plan.container.run_net(outside, inside)
-    logger.info(f'port binding for {outside}->{plan.name}:{inside} created')
+    console.info(f'port binding for {outside}->{plan.name}:{inside} created')
 
 
 @network.command()
@@ -71,8 +71,8 @@ def remove(name, outside, inside):
 
     loader = Loader()
     if not (plan := loader.get_plan(name)):
-        logger.error(f'unable to find plan {name}')
+        console.error(f'unable to find plan [bold]{name}[/]')
         return
 
     plan.container.stop_net(outside, inside)
-    logger.info(f'port binding for {outside}->{plan.name}:{inside} removed')
+    console.info(f'port binding for {outside}->{plan.name}:{inside} removed')

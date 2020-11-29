@@ -288,6 +288,31 @@ class Container(object):
 
         return c
 
+    def ports(self) -> list:
+        """
+            Get's the live port mapping for a plan. This is done
+            by parsing the container names for the plan and extracting
+            it from that.
+        """
+
+        p = []
+        for container in self.containers():
+            if '_net_' not in container.name:
+                continue
+
+            candidate = container.name.split('_')
+            port_map = candidate[-2:]
+
+            if not len(port_map) == 2:
+                continue
+
+            outside, inside = port_map[0], port_map[1]
+            logger.debug(f'{container.name}, {inside}<-{outside}')
+
+            p.append((outside, inside))
+
+        return p
+
     def run(self) -> models.containers.Container:
         """
             Run the containers for a plan
@@ -319,10 +344,11 @@ class Container(object):
 
         self._ensure_net_exists()
 
-        logger.debug(f'starting network container for {self.get_net_container_name()} mapping {outside}->{inside}')
+        logger.debug(f'starting network container for {self.get_net_container_name()} '
+                     f'mapping {outside}->{inside} as {self.get_net_container_name_with_ports(outside, inside)}')
         self.get_client().containers.run(config.net_container_name(), detach=True,
                                          environment={
-                                             'REMOTE_HOST': self.get_net_container_name(),
+                                             'REMOTE_HOST': self.get_container_name(),
                                              'REMOTE_PORT': inside, 'LOCAL_PORT': outside,
                                          }, stderr=True, stdout=True, remove=True,
                                          network=config.net_name(), ports={outside: outside},
@@ -349,6 +375,8 @@ class Container(object):
         """
 
         for container in self.containers():
+            logger.debug(f'checking if container {container.name} == '
+                         f'{self.get_net_container_name_with_ports(outside, inside)}')
             if container.name == self.get_net_container_name_with_ports(outside, inside):
                 logger.info(f'stopping network container for {inside}<-{outside}')
                 container.stop()

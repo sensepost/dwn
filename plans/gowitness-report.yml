@@ -1,5 +1,6 @@
 name: gowitness-report
 image: leonjza/gowitness
+detach: true
 command: gowitness report serve -a 0.0.0.0:7171
 volumes:
   .:

@@ -2,8 +2,9 @@ import click
 import docker
 from docker.errors import DockerException, ImageNotFound, NotFound
 from loguru import logger
+from rich.table import Table
 
-from dwn.config import config
+from dwn.config import config, console
 from dwn.plan import Loader
 
 
@@ -15,35 +16,35 @@ def check():
 
     # plans
     loader = Loader()
-    logger.info(f'loaded {len(loader.valid_plans())} valid plans')
-    logger.info('checking docker environment')
+    console.info(f'loaded [bold]{len(loader.valid_plans())}[/] valid plans')
 
     # docker
     try:
         client = docker.from_env()
         info = client.info()
-        logger.info(f'docker server version: {info.get("ServerVersion")}')
+        console.info(f'docker server version: [bold]{info.get("ServerVersion")}[/]')
 
         # network container
         client.images.get(config.net_container_name())
-        logger.info(f'network image \'{config.net_container_name()}\' exists')
+        console.info(f'network image [bold]\'{config.net_container_name()}\'[/] exists')
 
         # dwn docker  network
         client.networks.get(config.net_name())
+        console.info(f'docker network [bold]\'{config.net_name()}\'[/] exists')
 
     except ImageNotFound as _:
-        logger.warning(f'network image \'{config.net_container_name()}\' does not exist '
-                       f'build it with the \'network build-container\' command')
+        console.warn(f'network image [bold]\'{config.net_container_name()}\'[/] does not exist. '
+                     f'build it with the [bold]\'network build-container\'[/] command')
 
     except NotFound as _:
-        logger.warning(f'docker network \'{config.net_name()}\' not found.'
-                       f' \'docker network create {config.net_name()} should solve that.')
+        console.warn(f'docker network [bold]\'{config.net_name()}\'[/] not found.'
+                     f'use  [bold]\'docker network create {config.net_name()}\'[/] to should solve that.')
 
     except DockerException as e:
         logger.error(f'docker client error: {e}')
         logger.error(type(e))
 
-    logger.info('everything seems to be ok to use dwn!')
+    console.info('[green]everything seems to be ok to use dwn![/]')
 
 
 @click.command(context_settings=dict(
@@ -58,25 +59,25 @@ def run(name, extra_args):
 
     loader = Loader()
     if not (plan := loader.get_plan(name)):
-        logger.error(f'unable to find plan {name}')
+        console.error(f'unable to find plan [bold]{name}[/]')
         return
 
-    logger.info(f'found plan for {name}')
+    console.info(f'found plan for [cyan]{name}[/]')
     plan.add_commands(extra_args) if extra_args else None
 
     for v, o in plan.volumes.items():
-        logger.info(f'volume {v} -> {o["bind"]}')
+        console.info(f'volume: {v} -> {o["bind"]}')
 
     for m in plan.exposed_ports:
-        logger.info(f'port {m[1]} -> {m[0]}')
+        console.info(f'port: {m[0]}<-{m[1]}')
 
     service = plan.container.run()
 
     if plan.detach:
-        logger.info(f'container {service.name} started, detaching')
+        console.info(f'container [bold]{service.name}[/] started for plan [cyan]{plan.name}[/], detaching')
         return
 
-    logger.info('streaming container logs')
+    console.info('streaming container logs')
     for log in service.attach(stdout=True, stderr=True, stream=True, logs=True):
         click.echo(log.rstrip())
 
@@ -93,9 +94,23 @@ def show():
 
     loader = Loader()
 
+    table = Table(title='running plan report')
+    table.add_column('plan')
+    table.add_column('container(s)')
+    table.add_column('port(s)')
+    table.add_column('volume(s)')
+
     for plan in loader.valid_plans():
-        for container in plan.container.containers():
-            logger.info(f'plan {plan.name} has container {container.name}')
+        if not len(plan.container.containers()) > 0:
+            continue
+
+        table.add_row(f'[bold]{plan.name}[/]',
+                      '\n'.join(f'[cyan]{c.name}[/]' for c in plan.container.containers()),
+                      '\n'.join(f'[blue]{p[1]}<-{p[0]}[/]' for p in plan.container.ports()),
+                      f"[green]{','.join(f'{v[0]}->{v[1]}' for v in plan.volumes.items())}[/]",
+                      )
+
+    console.print(table)
 
 
 @click.command()
@@ -108,12 +123,13 @@ def stop(name, yes):
 
     if not yes:
         if not click.confirm(f'are you sure you want to stop containers for plan {name}?'):
-            logger.info('not stopping any plans')
+            console.info('not stopping any plans')
             return
 
     loader = Loader()
     if not (plan := loader.get_plan(name)):
-        logger.error(f'unable to find plan {name}')
+        console.error(f'unable to find plan [bold]{name}[/]')
         return
 
+    console.info(f'stopping [bold]{len(plan.container.containers())}[/] containers for plan [cyan]{name}[/]')
     plan.container.stop()

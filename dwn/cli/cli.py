@@ -3,10 +3,9 @@ import sys
 import click
 from loguru import logger
 
-from .commands.base import check, run, stop, show
-from .commands.network import network
-from .commands.plans import plans
-from ..config import USER_PLAN_DIRECTORY
+from dwn.cli.commands.base import check, run, stop, show
+from dwn.cli.commands.network import network
+from dwn.cli.commands.plans import plans
 
 
 @click.group()
@@ -17,8 +16,7 @@ def cli(debug):
         logger.add(sys.stderr,
                    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
                           "<level>{level: <8}</level> | <level>{message}</level>", level="INFO")
-
-    logger.debug(f'plan directory is {USER_PLAN_DIRECTORY}')
+        return
 
 
 # base
