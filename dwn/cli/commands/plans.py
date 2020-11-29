@@ -160,7 +160,7 @@ def new(name):
     p = {
         'name': name if name else 'name',
         'image': f'{name}/{name}' if name else 'vendor/image',
-        'command': ['gowitness', 'report', 'serve'],
+        'command': 'gowitness report serve',
         'detach': True,
         'volumes': {
             '.': {'bind': '/data'}
