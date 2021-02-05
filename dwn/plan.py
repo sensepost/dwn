@@ -6,7 +6,7 @@ import yaml
 from docker import DockerClient, models
 from docker.errors import NotFound, ImageNotFound
 
-from .config import config, console, \
+from dwn.config import config, console, \
     USER_PLAN_DIRECTORY, DIST_PLAN_DIRECTORY, NETWORK_CONTAINER_PATH
 
 
