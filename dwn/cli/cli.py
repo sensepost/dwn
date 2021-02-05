@@ -9,6 +9,16 @@ from dwn.config import console
 @click.group()
 @click.option('--debug', is_flag=True, default=False, help='enable debug logging')
 def cli(debug):
+    """
+    \b
+         __
+     ___/ /    _____
+    / _  / |/|/ / _ \\
+    \\_,_/|__,__/_//_/
+      docker pwn tool manager \b
+      by @leonjza / @sensepost
+
+    """
     if debug:
         console.debug_enabled = True
 
