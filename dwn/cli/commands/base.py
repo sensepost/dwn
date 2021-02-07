@@ -75,6 +75,12 @@ def run(name, extra_args):
         console.info(f'container [bold]{service.name}[/] started for plan [cyan]{plan.name}[/], detaching')
         return
 
+    if plan.tty:
+        console.info('container booted! attach & detach commands are:')
+        console.info(f'attach: [bold]docker attach [cyan]{plan.container.get_container_name()}[/][/]')
+        console.info(f'detach: [bold]ctrl + [red]p[/], ctrl + [red]q[/][/]')
+        return
+
     console.info('streaming container logs')
     for log in service.attach(stdout=True, stderr=True, stream=True, logs=True):
         click.echo(log.rstrip())

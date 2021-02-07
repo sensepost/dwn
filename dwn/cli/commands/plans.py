@@ -162,6 +162,7 @@ def new(name):
         'image': f'{name}/{name}' if name else 'vendor/image',
         'command': 'gowitness report serve',
         'detach': True,
+        'tty': False,
         'volumes': {
             '.': {'bind': '/data'}
         },

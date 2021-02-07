@@ -1,7 +1,8 @@
 name: msfconsole
 image: metasploitframework/metasploit-framework
+tty: true
 volumes:
   .:
     bind: /data
 ports:
-- 4444
+  - 4444

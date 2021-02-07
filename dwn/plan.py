@@ -24,6 +24,7 @@ class Plan:
     exposed_ports: List[Any]
     environment: List[str]
     detach: bool
+    tty: bool
     image: str
     version: str
     command: Union[str, list]
@@ -39,6 +40,7 @@ class Plan:
         self.exposed_ports = []
         self.environment = []
         self.detach = False
+        self.tty = False
         self.version = 'latest'
 
         self.container = Container(self)
@@ -188,8 +190,10 @@ class Plan:
             'remove': True,
             'volumes': self.volumes,
             'ports': self.ports,
+            'tty': self.tty,
+            'stdin_open': self.tty if self.tty else False,
             'environment': self.environment,
-            'detach': True  # it's up to the caller to attach after launch for logs
+            'detach': True  # it's up to the caller to re-attach after launch for logs
         }
 
     def __repr__(self):
