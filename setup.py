@@ -1,8 +1,29 @@
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from dwn import __version__
+
+
+def _package_files(directory: str, suffix: str = None) -> list:
+    """
+        Get all of the file paths in the directory specified by suffix.
+        :param directory:
+        :return:
+    """
+
+    paths = []
+
+    for (path, directories, filenames) in os.walk(directory):
+        for filename in filenames:
+            if suffix is not None:
+                if filename.endswith(suffix):
+                    paths.append(os.path.join('..', path, filename))
+            else:
+                paths.append(os.path.join('..', path, filename))
+
+    return paths
+
 
 # here - where we are.
 here = os.path.abspath(os.path.dirname(__file__))
@@ -20,7 +41,7 @@ setup(
 
     description='dwn, a docker pwn tool manager',
     license='GPL v3',
-    packages=['dwn'],
+    packages=find_packages(),
     install_requires=requirements,
     python_requires='>=3.5',
 
@@ -29,6 +50,12 @@ setup(
 
     keywords=['docker', 'tool', 'pentest', 'framework'],
     version=__version__,
+
+    # include other files
+    package_data={
+        '': _package_files(os.path.join(here, 'dwn/assets')) +
+            _package_files(os.path.join(here, 'plans/'))
+    },
 
     classifiers=[
         'Operating System :: OS Independent',
