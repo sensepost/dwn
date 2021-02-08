@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from rich.console import Console as RichConsole
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 BASE = Path('~/.dwn').expanduser()
 
