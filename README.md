@@ -80,7 +80,7 @@ To list the available plans, run `dwn plans show`.
                                      11 plans
 ```
 
-To a plan such as `gowitness` to screenshot <https://google.com>, run `dwn run gowitness --disable-db single https://www.google.com`. This plan will exit when done, so you don’t have to `dwn stop gowitness`.
+To run a plan such as `gowitness` screenshotting <https://google.com>, run `dwn run gowitness --disable-db single https://www.google.com`. This plan will exit when done, so you don’t have to `dwn stop gowitness`.
 
 ```text
 ❯ dwn run gowitness --disable-db single https://www.google.com
@@ -91,7 +91,6 @@ To a plan such as `gowitness` to screenshot <https://google.com>, run `dwn run g
 ❯
 ❯ ls screenshots
 https-www.google.com.png
-❯
 ```
 
 A plan such as `netcat-reverse` however will stay alive. You can connect to the plans TTY after it is started to interact with any shells you may receive. Example usage would be:
@@ -103,7 +102,6 @@ A plan such as `netcat-reverse` however will stay alive. You can connect to the 
 (i) container booted! attach & detach commands are:
 (i) attach: docker attach dwn_wghz_netcat-reverse
 (i) detach: ctrl + p, ctrl + q
-❯
 ```
 
 Attaching to the plan (and executing `nc -e` somewhere else)
@@ -116,7 +114,6 @@ env | grep -i shell
 SHELL=/bin/zsh
 
 read escape sequence
-❯
 ```
 
 You can get a running plan report too
@@ -130,7 +127,6 @@ You can get a running plan report too
 │ netcat-reverse │ dwn_wghz_netcat-reverse_net_4444_4444 │ 4444<-4444 │           │
 │                │ dwn_wghz_netcat-reverse               │            │           │
 └────────────────┴───────────────────────────────────────┴────────────┴───────────┘
-❯
 ```
 
 And finally, stop a plan.
@@ -138,7 +134,6 @@ And finally, stop a plan.
 ```text
 ❯ dwn stop netcat-reverse -y
 (i) stopping 2 containers for plan netcat-reverse
-❯
 ```
 
 ## networking
