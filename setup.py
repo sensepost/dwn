@@ -37,7 +37,7 @@ setup(
     author='Leon Jacobs',
     author_email='leon@sensepost.com',
 
-    description='dwn, a docker attack took utility',
+    description='dwn, a docker pwn tool manager',
     license='GPL v3',
     packages=['dwn'],
     install_requires=requirements,
