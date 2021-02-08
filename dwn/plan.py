@@ -168,7 +168,7 @@ class Plan:
         """
 
         console.debug(f'adding commands {c} to plan {self.name}')
-        self.command = self.command + ' '.join(c)
+        self.command = self.command + ' ' + ' '.join(c)
 
     def image_version(self) -> str:
         """
