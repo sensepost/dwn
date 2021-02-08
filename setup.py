@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup
 
-from dwn.config import __version__
+from dwn import __version__
 
 # here - where we are.
 here = os.path.abspath(os.path.dirname(__file__))

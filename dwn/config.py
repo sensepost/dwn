@@ -6,8 +6,6 @@ from pathlib import Path
 import yaml
 from rich.console import Console as RichConsole
 
-__version__ = "1.0.1"
-
 BASE = Path('~/.dwn').expanduser()
 
 USER_PLAN_DIRECTORY = BASE / 'plans'

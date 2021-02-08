@@ -1,9 +1,10 @@
 import click
 
+from dwn import __version__
 from dwn.cli.commands.base import check, run, stop, show
 from dwn.cli.commands.network import network
 from dwn.cli.commands.plans import plans
-from dwn.config import console, __version__
+from dwn.config import console
 
 
 @click.command()
