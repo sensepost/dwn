@@ -3,7 +3,12 @@ import click
 from dwn.cli.commands.base import check, run, stop, show
 from dwn.cli.commands.network import network
 from dwn.cli.commands.plans import plans
-from dwn.config import console
+from dwn.config import console, __version__
+
+
+@click.command()
+def version():
+    console.print(f'dwn version [cyan]{__version__}[/]')
 
 
 @click.group()
@@ -22,6 +27,8 @@ def cli(debug):
     if debug:
         console.debug_enabled = True
 
+
+cli.add_command(version)
 
 # base
 cli.add_command(check)
