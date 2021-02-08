@@ -4,25 +4,6 @@ from setuptools import setup
 
 from dwn.config import __version__
 
-
-def _package_files(directory: str, suffix: str) -> list:
-    """
-        Get all of the file paths in the directory specified by suffix.
-
-        :param directory:
-        :return:
-    """
-
-    paths = []
-
-    for (path, directories, filenames) in os.walk(directory):
-        for filename in filenames:
-            if filename.endswith(suffix):
-                paths.append(os.path.join('..', path, filename))
-
-    return paths
-
-
 # here - where we are.
 here = os.path.abspath(os.path.dirname(__file__))
 
