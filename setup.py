@@ -43,7 +43,7 @@ setup(
     license='GPL v3',
     packages=find_packages(),
     install_requires=requirements,
-    python_requires='>=3.5',
+    python_requires='>=3.8',
 
     url='https://github.com/sensepost/dwn',
     download_url='https://github.com/sensepost/dwn/archive/' + __version__ + '.tar.gz',
