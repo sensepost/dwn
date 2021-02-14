@@ -1,0 +1,9 @@
+# Author: Anubis
+# Twitter: @AnubisSec
+---
+
+name: gobuster
+image: anubissec/gobuster
+volumes:
+  .:
+    bind: /gobuster
