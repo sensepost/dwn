@@ -96,7 +96,7 @@ def info(name):
 
     try:
         client = docker.from_env()
-        image = client.images.get(name=plan.image)
+        image = client.images.get(name=plan.image_version())
     except ImageNotFound as e:
         table.add_row('docker image', f'[red]local docker image not found: [bold]{e}[/][/]')
         console.print(table)
