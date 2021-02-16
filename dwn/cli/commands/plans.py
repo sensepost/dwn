@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import click
 import docker
 import yaml
@@ -116,9 +118,9 @@ def info(name):
 
 @plans.command()
 @click.argument('name', required=False)
-def pull(name):
+def update(name):
     """
-        Pull plan images.
+        Update plan images.
     """
 
     plan_targets = []
@@ -141,9 +143,27 @@ def pull(name):
         [plan_targets.append(n) for n in loader.valid_plans()]
 
     for p in plan_targets:
+        if p is None:
+            continue
+
         try:
-            console.info(f'pulling image [bold]{p.image}:{p.version}[/]')
-            client.images.pull(p.image, tag=p.version)
+            # build the image if we have an inline dockerfile
+            if p.has_dockerfile():
+                console.info(f'building image [bold]{p.image_version()}[/]')
+                dockerfile = BytesIO(p.dockerfile.encode('utf-8'))
+
+                _, logs = client.images.build(fileobj=dockerfile, pull=True, tag=p.image_version(), rm=True,
+                                              forcerm=True, nocache=True)
+                for log in logs:
+                    console.debug(log)
+
+                console.info(f'container for [bold]{p.image_version()}[/] built')
+
+            # pull the image instead
+            else:
+                console.info(f'pulling image [bold]{p.image_version()}[/]')
+                client.images.pull(p.image, tag=p.version)
+
         except ImageNotFound as e:
             console.error(f'failed to pull image: [bold]{e}[/]')
             continue
@@ -151,7 +171,7 @@ def pull(name):
             console.error(f'a docker exception occurred: [bold]{e}[/]')
             continue
 
-        console.info(f'image [bold]{p.image}:{p.version}[/] for plan [cyan]{p.name}[/] pulled')
+        console.info(f'image [bold]{p.image_version()}[/] for plan [cyan]{p.name}[/] updated')
 
 
 @plans.command()
