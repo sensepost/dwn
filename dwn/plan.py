@@ -1,3 +1,4 @@
+from io import BytesIO
 from pathlib import Path
 from typing import Union, Set, List, Dict, Any
 
@@ -19,6 +20,7 @@ class Plan:
     required_keys: Set[str]
     valid: bool
     name: str
+    dockerfile: str
     volumes: Dict[Any, Any]
     ports: Union[Dict[int, int]]
     exposed_ports: List[Any]
@@ -34,6 +36,7 @@ class Plan:
         self.plan_path = p
         self.name = ''
         self.image = ''
+        self.dockerfile = ''
         self.command = ''
         self.volumes = {}
         self.ports = {}
@@ -68,8 +71,7 @@ class Plan:
             that even if we dont explicitly validate/expect an option, one can
             still add arbitrary options to a container from a plan.
 
-            ref: https://docker-py.readthedocs.io/en/
-                    stable/containers.html#docker.models.containers.ContainerCollection.run
+            ref: https://docker-py.readthedocs.io/en/stable/containers.html#docker.models.containers.ContainerCollection.run
 
             :param d:
             :return:
@@ -159,6 +161,24 @@ class Plan:
                 self.valid = False
             h.append(outside)
 
+    def has_dockerfile(self) -> bool:
+        """
+            Check if the plan has a valid dockerfile key.
+
+            This would indicate that the plan needs to be built
+            using that and not using a prebuilt image.
+        """
+
+        if len(self.dockerfile) <= 0:
+            return False
+
+        # silly sanity check
+        if 'FROM' not in self.dockerfile.upper():
+            console.warn(f'dockerfile key invalid for plan [cyan]{self.name}[/]')
+            return False
+
+        return True
+
     def add_commands(self, c: Union[str, list]):
         """
             Adds a command to the plan
@@ -173,9 +193,12 @@ class Plan:
     def image_version(self) -> str:
         """
             Return the image:version of a plan
+
+            If the plan has an inline dockerfile, override the version to
+            dwnlocal
         """
 
-        return f'{self.image}:{self.version}'
+        return f'{self.image}:{"dwnlocal" if self.has_dockerfile() else self.version}'
 
     def run_options(self) -> dict:
         """
@@ -267,6 +290,36 @@ class Container(object):
             self.get_client().networks.create(name=config.net_name(), check_duplicate=True)
             self._ensure_net_exists()
 
+    def _ensure_image_exists(self):
+        """
+            Ensures that an image exists if a plan has an inline
+            dockerfile.
+        """
+
+        # if the plan does not have an inline dockerfile, then we can rely on
+        # the call to run() later to pull the image instead.
+        if not self.plan.has_dockerfile():
+            return
+
+        console.debug(f'checking if {self.plan.image_version()} is available')
+
+        try:
+            self.get_client().images.get(self.plan.image_version())
+        except ImageNotFound as _:
+            console.warn(f'image for plan [cyan]{self.plan.name}[/] does not exist, quickly building it')
+
+            dockerfile = BytesIO(self.plan.dockerfile.encode('utf-8'))
+            console.debug(f'building dockerfile:\n{self.plan.dockerfile}')
+
+            _, logs = self.get_client().images.build(
+                fileobj=dockerfile, pull=True, tag=self.plan.image_version(), rm=True, forcerm=True)
+
+            for log in logs:
+                console.debug(log)
+
+            console.info(f'container for [bold]{self.plan.image_version()}[/] built')
+            self._ensure_net_exists()
+
     def containers(self) -> list:
         """
             Returns containers relevant to this plan.
@@ -312,6 +365,7 @@ class Container(object):
         """
 
         self._ensure_net_exists()
+        self._ensure_image_exists()  # inline dockerfiles
         console.debug(f'starting service container [bold]{self.get_container_name()}[/]'
                       f' for plan [bold]{self.plan.name}[/]')
 

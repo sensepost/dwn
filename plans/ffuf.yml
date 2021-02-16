@@ -1,0 +1,19 @@
+name: ffuf
+image: ffuf
+dockerfile: |
+  FROM golang:1-alpine
+
+  RUN apk --no-cache add git && \
+      go get github.com/ffuf/ffuf && \
+      mkdir -p /data
+
+  ENV PATH="/go/bin:${PATH}"
+
+  WORKDIR /data
+  VOLUME /data
+
+  ENTRYPOINT [ "ffuf" ]
+detach: false
+volumes:
+  .:
+    bind: /data
