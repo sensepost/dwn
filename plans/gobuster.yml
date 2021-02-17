@@ -1,0 +1,19 @@
+name: gobuster
+image: gobuster
+dockerfile: |
+  FROM golang:1.15.8-alpine
+  RUN apk --no-cache add git && \
+    mkdir -p /data && \
+    go get github.com/OJ/gobuster
+    
+  ENV PATH="/go/bin:${PATH}"
+
+  WORKDIR /data
+  VOLUME /data
+
+
+  ENTRYPOINT [ "gobuster" ]
+detach: false
+volumes:
+  .:
+    bind: /data
