@@ -1,0 +1,16 @@
+name: binwalk
+image: binwalk
+dockerfile: |
+  FROM alpine
+
+  RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing binwalk && \
+    mkdir -p /binwalk
+
+  VOLUME /binwalk
+  WORKDIR /binwalk
+
+  ENTRYPOINT ["binwalk"]
+volumes:
+  .:
+    bind: /binwalk
+
