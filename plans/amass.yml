@@ -1,0 +1,6 @@
+name: amass
+image: caffix/amass
+volumes:
+  ./amass:
+    bind: /.config/amass
+
