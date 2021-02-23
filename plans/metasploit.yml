@@ -1,4 +1,4 @@
-name: msfconsole
+name: metasploit
 image: metasploitframework/metasploit-framework
 tty: true
 volumes:
