@@ -1,0 +1,5 @@
+name: empire
+image: bcsecurity/empire
+tty: true
+ports:
+  - 1337
