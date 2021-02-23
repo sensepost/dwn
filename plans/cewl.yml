@@ -1,0 +1,25 @@
+# dockerfile adapted from: https://github.com/digininja/CeWL/blob/master/Dockerfile
+---
+
+name: cewl
+image: cewl
+dockerfile: |
+  FROM ruby:2.5-alpine
+
+  ENV RUBYOPT "rubygems"
+
+  RUN set -ex \
+      && apk add  --no-cache --virtual .build-deps build-base git
+
+  RUN git clone https://github.com/digininja/CeWL /usr/src/CeWL \
+      && cd /usr/src/CeWL \
+      && gem install bundler \
+      && bundle install \
+      && apk del .build-deps
+
+  WORKDIR /host
+  ENTRYPOINT ["/usr/src/CeWL/cewl.rb"]
+volumes:
+  .:
+    bind: /host
+
