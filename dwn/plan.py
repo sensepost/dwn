@@ -372,6 +372,8 @@ class Container(object):
         opts = self.plan.run_options()
         opts['name'] = self.get_container_name()
 
+        console.debug(f'using image tag [bold]{self.plan.image_version()}[/] for plan')
+
         container = self.get_client(). \
             containers.run(self.plan.image_version(), network=config.net_name(), **opts)
 
