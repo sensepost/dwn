@@ -1,0 +1,16 @@
+# https://github.com/infosec-au/altdns
+---
+name: altdns
+image: altdns
+dockerfile: |
+  FROM python:2-alpine
+
+  RUN pip install py-altdns && mkdir /data
+
+  WORKDIR /data
+
+  ENTRYPOINT [ "altdns" ]
+volumes:
+  .:
+    bind: /data
+

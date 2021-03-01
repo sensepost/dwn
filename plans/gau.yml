@@ -1,0 +1,19 @@
+name: gau
+image: gau
+dockerfile: |
+  FROM golang:1-alpine
+
+  RUN apk --no-cache add git && \
+      go get github.com/lc/gau && \
+      mkdir -p /data
+
+  ENV PATH="/go/bin:${PATH}"
+
+  WORKDIR /data
+  VOLUME /data
+
+  ENTRYPOINT [ "gau" ]
+detach: false
+volumes:
+  .:
+    bind: /data

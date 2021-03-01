@@ -1,0 +1,15 @@
+name: dnsgen
+image: dnsgen
+dockerfile: |
+  FROM python:3-alpine
+
+  RUN pip3 install dnsgen && \
+      mkdir /data
+
+  WORKDIR /data
+
+  ENTRYPOINT [ "dnsgen" ]
+volumes:
+  .:
+    bind: /data
+

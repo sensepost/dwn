@@ -1,0 +1,8 @@
+name: chisel
+image: jpillora/chisel
+volumes:
+  .:
+    bind: /data
+ports:
+- 8080: 8080
+
