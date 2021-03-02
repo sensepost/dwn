@@ -183,6 +183,7 @@ def new(name):
         'command': 'gowitness report serve',
         'detach': True,
         'tty': False,
+        'dockerfile': None,
         'volumes': {
             '.': {'bind': '/data'}
         },
@@ -193,9 +194,10 @@ def new(name):
 
     out = f'[dim]# example plan\n' \
           f'#\n' \
-          f'# keys (command, detach, volumes, ports) are optional\n' \
-          f'# volume are host:container\n' \
-          f'# port binding is container:host\n' \
+          f'# name & image keys are required\n' \
+          f'#\n' \
+          f'# volume format it host:container\n' \
+          f'# port binding format is container:host\n' \
           f'\n' \
           f'---\n' \
           f'\n' \

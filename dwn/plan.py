@@ -282,7 +282,7 @@ class Container(object):
             for log in logs:
                 console.debug(log)
 
-            console.info(f'network container [bold]{config.net_container_name()}[/] built')
+            console.info(f'network image [bold]{config.net_container_name()}[/] built')
             self._ensure_net_exists()
 
         except NotFound as _:
