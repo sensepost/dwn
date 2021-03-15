@@ -1,17 +1,18 @@
-name: gobuster
-image: gobuster
+name: gau
+image: gau
 dockerfile: |
   FROM golang:1-alpine
+
   RUN apk --no-cache add git && \
-    mkdir -p /data && \
-    go get github.com/OJ/gobuster
-    
+      go get github.com/lc/gau && \
+      mkdir -p /data
+
   ENV PATH="/go/bin:${PATH}"
 
   WORKDIR /data
   VOLUME /data
 
-  ENTRYPOINT [ "gobuster" ]
+  ENTRYPOINT [ "gau" ]
 detach: false
 volumes:
   .:

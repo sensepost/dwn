@@ -61,6 +61,11 @@ def run(name, extra_args):
         return
 
     console.info(f'found plan for [cyan]{name}[/]')
+    if (c := len(plan.container.containers())) > 0:
+        console.error(f'plan [bold]{name}[/] already has [b]{c}[/] containers running')
+        console.info(f'use [bold]dwn show[/] to see running plans. [bold]dwn stop <plan>[/] to stop')
+        return
+
     plan.add_commands(extra_args) if extra_args else None
 
     for v, o in plan.volumes.items():
@@ -82,8 +87,14 @@ def run(name, extra_args):
         return
 
     console.info('streaming container logs')
-    for log in service.attach(stdout=True, stderr=True, stream=True, logs=True):
-        click.echo(log.rstrip())
+    try:
+        for log in service.attach(stdout=True, stderr=True, stream=True, logs=True):
+            click.echo(log.rstrip())
+    except docker.errors.NotFound:
+        console.warn(f'unable to stream logs. service container '
+                     f'[bold]{service.name}[/] may have already stopped')
+        plan.container.stop()
+        return
 
     # if log streaming is done, we're assuming the container exited too,
     # so cleanup anything else.

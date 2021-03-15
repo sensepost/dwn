@@ -1,0 +1,14 @@
+name: searchsploit
+image: searchsploit
+dockerfile: |
+  FROM alpine
+
+  RUN apk add --no-cache git bash ncurses file
+
+  RUN git clone --depth 1 https://github.com/offensive-security/exploitdb.git /exploitdb && \
+      sed 's|path_array+=(.*)|path_array+=("/exploitdb")|g' /exploitdb/.searchsploit_rc > ~/.searchsploit_rc
+
+  ENV PATH="${PATH}:/exploitdb"
+  ENV TERM=xterm
+
+  ENTRYPOINT [ "searchsploit" ]
