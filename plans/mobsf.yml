@@ -1,0 +1,8 @@
+name: mobsf
+image: opensecurity/mobile-security-framework-mobsf
+detach: true
+volumes:
+  mobsf:
+    bind: /root/.MobSF
+ports:
+  - 8000: 8000

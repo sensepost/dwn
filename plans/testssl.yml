@@ -1,0 +1,2 @@
+name: testssl
+image: drwetter/testssl.sh
