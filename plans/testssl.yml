@@ -1,2 +1,2 @@
 name: testssl
-image: mvance/testssl
+image: drwetter/testssl.sh
